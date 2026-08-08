@@ -35,7 +35,7 @@ Registeration Number : 212223220019
 */
 ```
 
-activity_main.xml
+### activity_main.xml
 ```
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
@@ -121,7 +121,7 @@ activity_main.xml
 </LinearLayout>
 ```
 
-MainActivity.java
+### MainActivity.java
 ```
 package com.example.employeedetails;
 
@@ -326,7 +326,7 @@ public class MainActivity extends AppCompatActivity {
 }
 ```
 
-AndroidManifest.xml
+### AndroidManifest.xml
 ```
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
