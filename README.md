@@ -357,6 +357,65 @@ public class MainActivity extends AppCompatActivity {
 
 </manifest>
 ```
+
+### build.gradle.kts(:app)
+```
+plugins {
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.google.services)
+}
+
+android {
+    namespace = "com.example.employeedetails"
+    compileSdk {
+        version = release(37)
+    }
+
+    defaultConfig {
+        applicationId = "com.example.employeedetails"
+        minSdk = 24
+        targetSdk = 37
+        versionCode = 1
+        versionName = "1.0"
+
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    buildTypes {
+        release {
+            optimization {
+                enable = false
+            }
+        }
+    }
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
+    }
+}
+
+dependencies {
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.database)
+    implementation(libs.activity.ktx)
+    implementation(libs.appcompat)
+    implementation(libs.constraintlayout)
+    implementation(libs.material)
+    implementation(libs.cardview)
+    testImplementation(libs.junit)
+    androidTestImplementation(libs.espresso.core)
+    androidTestImplementation(libs.ext.junit)
+}
+```
+
+### build.gradle.kts(EmployeeDetails)
+```
+// Top-level build file where you can add configuration options common to all sub-projects/modules.
+plugins {
+    alias(libs.plugins.android.application) apply false
+    alias(libs.plugins.google.services) apply false
+}
+```
 ## OUTPUT
 <img width="196" height="217" alt="image" src="https://github.com/user-attachments/assets/c22eb991-b1d2-4e1b-bc74-c3130980f8e8" />
 <img width="1917" height="895" alt="image" src="https://github.com/user-attachments/assets/70f583df-fad3-49f0-bffb-c428704a6ab5" />
