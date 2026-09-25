@@ -126,7 +126,6 @@ Registeration Number : 212223220019
 package com.example.employeedetails;
 
 import android.os.Bundle;
-import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
 
@@ -145,16 +144,11 @@ import java.util.ArrayList;
 
 public class MainActivity extends AppCompatActivity {
 
-    EditText etName, etDepartment, etSalary, etAge;
-    Button btnSave, btnUpdate, btnDelete;
-    RecyclerView recyclerView;
-
-    ArrayList<Employee> employeeList;
-    EmployeeAdapter adapter;
-
-    DatabaseReference databaseReference;
-
-    String selectedId = "";
+    private EditText etName, etDept, etSalary, etAge;
+    private final DatabaseReference db = FirebaseDatabase.getInstance().getReference("Employees");
+    private final ArrayList<Employee> list = new ArrayList<>();
+    private EmployeeAdapter adapter;
+    private String selectedId = "";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -162,168 +156,90 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         etName = findViewById(R.id.etName);
-        etDepartment = findViewById(R.id.etDepartment);
+        etDept = findViewById(R.id.etDepartment);
         etSalary = findViewById(R.id.etSalary);
         etAge = findViewById(R.id.etAge);
 
-        btnSave = findViewById(R.id.btnSave);
-        btnUpdate = findViewById(R.id.btnUpdate);
-        btnDelete = findViewById(R.id.btnDelete);
-
-        recyclerView = findViewById(R.id.recyclerView);
-        recyclerView.setLayoutManager(new LinearLayoutManager(this));
-
-        try {
-            databaseReference = FirebaseDatabase.getInstance().getReference("Employees");
-        } catch (Exception e) {
-            Toast.makeText(this, "Connection Error: " + e.getMessage(), Toast.LENGTH_LONG).show();
-        }
-
-        employeeList = new ArrayList<>();
-
-        adapter = new EmployeeAdapter(employeeList, employee -> {
-            selectedId = employee.getId();
-
-            etName.setText(employee.getName());
-            etDepartment.setText(employee.getDepartment());
-            etSalary.setText(employee.getSalary());
-            etAge.setText(employee.getAge());
+        RecyclerView rv = findViewById(R.id.recyclerView);
+        rv.setLayoutManager(new LinearLayoutManager(this));
+        adapter = new EmployeeAdapter(list, emp -> {
+            selectedId = emp.getId();
+            etName.setText(emp.getName());
+            etDept.setText(emp.getDepartment());
+            etSalary.setText(emp.getSalary());
+            etAge.setText(emp.getAge());
+            Toast.makeText(this, "Selected: " + emp.getName(), Toast.LENGTH_SHORT).show();
         });
+        rv.setAdapter(adapter);
 
-        recyclerView.setAdapter(adapter);
+        findViewById(R.id.btnSave).setOnClickListener(v -> saveOrUpdate(false));
+        findViewById(R.id.btnUpdate).setOnClickListener(v -> saveOrUpdate(true));
+        findViewById(R.id.btnDelete).setOnClickListener(v -> deleteEmployee());
 
-        loadEmployees();
-
-        btnSave.setOnClickListener(v -> saveEmployee());
-
-        btnUpdate.setOnClickListener(v -> updateEmployee());
-
-        btnDelete.setOnClickListener(v -> deleteEmployee());
-    }
-
-    private void saveEmployee() {
-        if (databaseReference == null) {
-            Toast.makeText(this, "Database not available", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        String id = databaseReference.push().getKey();
-
-        if (id == null) {
-            Toast.makeText(this, "Error generating ID", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        Employee employee = new Employee(
-                id,
-                etName.getText().toString().trim(),
-                etDepartment.getText().toString().trim(),
-                etSalary.getText().toString().trim(),
-                etAge.getText().toString().trim()
-        );
-
-        databaseReference.child(id).setValue(employee);
-
-        Toast.makeText(this, "Employee Saved", Toast.LENGTH_SHORT).show();
-
-        clearFields();
-    }
-
-    private void loadEmployees() {
-        if (databaseReference == null) return;
-
-        databaseReference.addValueEventListener(new ValueEventListener() {
+        db.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
-
-                employeeList.clear();
-
+                list.clear();
                 for (DataSnapshot ds : snapshot.getChildren()) {
-
-                    Employee employee = ds.getValue(Employee.class);
-
-                    if (employee != null) {
-                        employeeList.add(employee);
+                    Employee emp = ds.getValue(Employee.class);
+                    if (emp != null) {
+                        emp.setId(ds.getKey());
+                        list.add(emp);
                     }
                 }
-
                 adapter.notifyDataSetChanged();
             }
 
             @Override
             public void onCancelled(@NonNull DatabaseError error) {
-
-                Toast.makeText(MainActivity.this,
-                        error.getMessage(),
-                        Toast.LENGTH_SHORT).show();
+                Toast.makeText(MainActivity.this, error.getMessage(), Toast.LENGTH_SHORT).show();
             }
         });
     }
 
-    private void updateEmployee() {
-        if (databaseReference == null) {
-            Toast.makeText(this, "Database not available", Toast.LENGTH_SHORT).show();
+    private void saveOrUpdate(boolean isUpdate) {
+        String name = etName.getText().toString().trim();
+        String dept = etDept.getText().toString().trim();
+        String salary = etSalary.getText().toString().trim();
+        String age = etAge.getText().toString().trim();
+
+        if (name.isEmpty() || dept.isEmpty() || salary.isEmpty() || age.isEmpty()) {
+            Toast.makeText(this, "Please fill all fields", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        if (selectedId.isEmpty()) {
-
-            Toast.makeText(this,
-                    "Please select an employee",
-                    Toast.LENGTH_SHORT).show();
+        if (isUpdate && (selectedId == null || selectedId.isEmpty())) {
+            Toast.makeText(this, "Please select an employee from the list below first", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        Employee employee = new Employee(
-                selectedId,
-                etName.getText().toString().trim(),
-                etDepartment.getText().toString().trim(),
-                etSalary.getText().toString().trim(),
-                etAge.getText().toString().trim()
-        );
+        String id = isUpdate ? selectedId : db.push().getKey();
+        if (id == null) return;
 
-        databaseReference.child(selectedId).setValue(employee);
-
-        Toast.makeText(this,
-                "Employee Updated",
-                Toast.LENGTH_SHORT).show();
-
+        db.child(id).setValue(new Employee(id, name, dept, salary, age));
+        Toast.makeText(this, isUpdate ? "Employee Updated" : "Employee Saved", Toast.LENGTH_SHORT).show();
         clearFields();
     }
 
     private void deleteEmployee() {
-        if (databaseReference == null) {
-            Toast.makeText(this, "Database not available", Toast.LENGTH_SHORT).show();
+        if (selectedId == null || selectedId.isEmpty()) {
+            Toast.makeText(this, "Please select an employee from the list below first", Toast.LENGTH_SHORT).show();
             return;
         }
-
-        if (selectedId.isEmpty()) {
-
-            Toast.makeText(this,
-                    "Please select an employee",
-                    Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        databaseReference.child(selectedId).removeValue();
-
-        Toast.makeText(this,
-                "Employee Deleted",
-                Toast.LENGTH_SHORT).show();
-
+        db.child(selectedId).removeValue();
+        Toast.makeText(this, "Employee Deleted", Toast.LENGTH_SHORT).show();
         clearFields();
     }
 
     private void clearFields() {
-
         etName.setText("");
-        etDepartment.setText("");
+        etDept.setText("");
         etSalary.setText("");
         etAge.setText("");
-
         selectedId = "";
     }
 }
+
 ```
 
 ### AndroidManifest.xml
